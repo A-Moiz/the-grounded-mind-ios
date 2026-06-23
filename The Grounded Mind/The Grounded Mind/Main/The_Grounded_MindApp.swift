@@ -9,20 +9,25 @@ import SwiftUI
 import FirebaseCore
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    FirebaseApp.configure()
-    return true
-  }
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+        return true
+    }
 }
 
 @main
 struct The_Grounded_MindApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @State private var dataManager = AppDataManager()
     
     var body: some Scene {
         WindowGroup {
             IntroView()
+                .environment(dataManager)
+                .task {
+                    await dataManager.preloadAllData()
+                }
         }
     }
 }
