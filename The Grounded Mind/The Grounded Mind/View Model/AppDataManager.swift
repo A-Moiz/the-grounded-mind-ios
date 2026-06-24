@@ -48,7 +48,6 @@ class AppDataManager {
         } catch {
             self.isPreloading = false
             self.errorMessage = "Initialization error: \(error.localizedDescription)"
-            print("Preload failed: \(error)")
         }
     }
 }

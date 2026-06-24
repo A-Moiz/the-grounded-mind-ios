@@ -8,7 +8,7 @@
 import Foundation
 
 struct TopicSource: Identifiable, Codable {
-    let id: Int
+    let id: String
     let label: String
     let url: String
 }

@@ -35,7 +35,6 @@ class TopicViewModel {
         } catch {
             isLoading = false
             self.errorMessage = "Failed to load topics: \(error.localizedDescription)"
-            print("Firestore Subcollection Error: \(error)")
         }
     }
 }
