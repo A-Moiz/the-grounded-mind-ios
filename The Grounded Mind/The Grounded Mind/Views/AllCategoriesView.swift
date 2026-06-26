@@ -155,6 +155,10 @@ struct TopicDetailView: View {
 struct TopicDetailReadingView: View {
     let topic: Topic
     @State private var selectedURL: URL? = nil
+    private let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
     
     var body: some View {
         ScrollView {
@@ -162,6 +166,29 @@ struct TopicDetailReadingView: View {
                 Text(topic.content)
                     .font(.body)
                     .lineSpacing(6)
+                
+                Divider()
+                
+                if let imageKeys = topic.imageKey, !imageKeys.isEmpty {
+                    Text("Images")
+                        .font(.headline)
+                        .padding(.top, 10)
+                    
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(imageKeys, id: \.self) { imageName in
+                            NavigationLink {
+                                ImageDetailView(imageName: imageName)
+                            } label: {
+                                Image(imageName)
+                                    .resizable()
+                                    .frame(width: 150, height: 150)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding()
+                }
                 
                 Divider()
                 
@@ -195,6 +222,20 @@ struct TopicDetailReadingView: View {
         .fullScreenCover(item: $selectedURL) { url in
             SafariView(url: url)
                 .ignoresSafeArea()
+        }
+    }
+}
+
+struct ImageDetailView: View {
+    var imageName: String
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        VStack {
+            Image(imageName)
+                .resizable()
+                .scaledToFit()
+                .padding()
         }
     }
 }

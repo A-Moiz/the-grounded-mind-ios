@@ -13,4 +13,5 @@ struct Topic: Identifiable, Codable {
     let heading: String
     let content: String
     let sources: [TopicSource]
+    let imageKey: [String]?
 }
