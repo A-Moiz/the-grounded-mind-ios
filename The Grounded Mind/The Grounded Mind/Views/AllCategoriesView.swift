@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FoundationModels
+import Kingfisher
 
 struct AllCategoriesView: View {
     @Environment(AppDataManager.self) private var dataManager
@@ -266,31 +267,18 @@ struct TopicDetailReadingView: View {
                         NavigationLink {
                             ImageDetailView(imageURL: imageURL)
                         } label: {
-                            AsyncImage(url: URL(string: imageURL)) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 120, height: 120)
-                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                case .failure:
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .fill(Color.secondary.opacity(0.2))
-                                        .frame(width: 120, height: 120)
-                                        .overlay(
-                                            Image(systemName: "photo.slash")
-                                                .foregroundColor(.secondary)
-                                        )
-                                case .empty:
+                            KFImage(URL(string: imageURL))
+                                .placeholder {
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .fill(Color.secondary.opacity(0.1))
                                         .frame(width: 120, height: 120)
                                         .overlay(ProgressView())
-                                @unknown default:
-                                    EmptyView()
                                 }
-                            }
+                                .resizable()
+                                .fade(duration: 0.25)
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
