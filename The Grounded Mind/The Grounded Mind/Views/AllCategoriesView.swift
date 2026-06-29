@@ -265,7 +265,7 @@ struct TopicDetailReadingView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(imageUrls, id: \.self) { imageURL in
                         NavigationLink {
-                            ImageDetailView(imageURL: imageURL)
+                            ImageDetailView(imageURLs: imageUrls, selectedImageURL: imageURL)
                         } label: {
                             KFImage(URL(string: imageURL))
                                 .placeholder {
@@ -339,27 +339,32 @@ struct TopicDetailReadingView: View {
 }
 
 struct ImageDetailView: View {
-    var imageURL: String
+    let imageURLs: [String]
+    @State var selectedImageURL: String
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
         VStack {
-            AsyncImage(url: URL(string: imageURL)) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                case .failure:
-                    ContentUnavailableView("Image unavailable", systemImage: "photo.slash")
-                case .empty:
-                    ProgressView()
-                @unknown default:
-                    EmptyView()
+            TabView(selection: $selectedImageURL) {
+                ForEach(imageURLs, id: \.self) { urlString in
+                    VStack {
+                        KFImage(URL(string: urlString))
+                            .placeholder {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                            }
+                            .resizable()
+                            .scaledToFit()
+                            .padding(.horizontal, 8)
+                    }
+                    .tag(urlString)
                 }
             }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
         }
+        .background(Color(.systemBackground))
+        .toolbarTitleDisplayMode(.inline)
     }
 }
 
