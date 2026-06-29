@@ -255,22 +255,42 @@ struct TopicDetailReadingView: View {
     // MARK: - Images section
     @ViewBuilder
     var imagesSection: some View {
-        if let imageKeys = topic.imageKey, !imageKeys.isEmpty {
+        if let imageUrls = topic.imageURLs, !imageUrls.isEmpty {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Images")
                     .font(.headline)
                     .foregroundColor(.secondary)
-                
+
                 LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(imageKeys, id: \.self) { imageName in
+                    ForEach(imageUrls, id: \.self) { imageURL in
                         NavigationLink {
-                            ImageDetailView(imageName: imageName)
+                            ImageDetailView(imageURL: imageURL)
                         } label: {
-                            Image(imageName)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 120, height: 120)
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            AsyncImage(url: URL(string: imageURL)) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                case .failure:
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 120, height: 120)
+                                        .overlay(
+                                            Image(systemName: "photo.slash")
+                                                .foregroundColor(.secondary)
+                                        )
+                                case .empty:
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(Color.secondary.opacity(0.1))
+                                        .frame(width: 120, height: 120)
+                                        .overlay(ProgressView())
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -331,15 +351,26 @@ struct TopicDetailReadingView: View {
 }
 
 struct ImageDetailView: View {
-    var imageName: String
+    var imageURL: String
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
         VStack {
-            Image(imageName)
-                .resizable()
-                .scaledToFit()
-                .padding()
+            AsyncImage(url: URL(string: imageURL)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding()
+                case .failure:
+                    ContentUnavailableView("Image unavailable", systemImage: "photo.slash")
+                case .empty:
+                    ProgressView()
+                @unknown default:
+                    EmptyView()
+                }
+            }
         }
     }
 }
