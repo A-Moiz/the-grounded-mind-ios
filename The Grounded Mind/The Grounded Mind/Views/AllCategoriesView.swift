@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FoundationModels
 
 struct AllCategoriesView: View {
     @Environment(AppDataManager.self) private var dataManager
@@ -154,7 +155,10 @@ struct TopicDetailView: View {
 
 struct TopicDetailReadingView: View {
     let topic: Topic
+    @State private var summaryManager = TopicSummaryManager()
     @State private var selectedURL: URL? = nil
+    @Environment(\.colorScheme) var colorScheme
+    
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
@@ -162,66 +166,166 @@ struct TopicDetailReadingView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(topic.content)
-                    .font(.body)
-                    .lineSpacing(6)
-                
-                Divider()
-                
-                if let imageKeys = topic.imageKey, !imageKeys.isEmpty {
-                    Text("Images")
-                        .font(.headline)
-                        .padding(.top, 10)
+            GlassEffectContainer(spacing: 24) {
+                VStack(alignment: .leading, spacing: 24) {
                     
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(imageKeys, id: \.self) { imageName in
-                            NavigationLink {
-                                ImageDetailView(imageName: imageName)
-                            } label: {
-                                Image(imageName)
-                                    .resizable()
-                                    .frame(width: 150, height: 150)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    // MARK: - AI Summary Section
+                    aiSummary
+                    
+                    // MARK: - Topic Content Panel
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text(topic.content)
+                            .font(.body)
+                            .lineSpacing(8)
+                            .foregroundColor(.primary)
                     }
                     .padding()
-                }
-                
-                Divider()
-                
-                if !topic.sources.isEmpty {
-                    Text("Sources")
-                        .font(.headline)
-                        .padding(.top, 10)
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
                     
-                    ForEach(topic.sources) { source in
-                        if let url = URL(string: source.url) {
-                            Button {
-                                selectedURL = url
-                            } label: {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("[\(source.id)] \(source.label)")
-                                        .font(.footnote)
-                                        .foregroundColor(.blue)
-                                        .multilineTextAlignment(.leading)
-                                        .underline()
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
+                    // MARK: - Media Grid Section
+                    imagesSection
+                    
+                    // MARK: - Sources Reference Section
+                    sourcesSection
                 }
+                .padding()
             }
-            .padding()
         }
         .navigationTitle(topic.heading)
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(item: $selectedURL) { url in
             SafariView(url: url)
                 .ignoresSafeArea()
+        }
+    }
+    
+    // MARK: - AI Summary section
+    @ViewBuilder
+    var aiSummary: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading) {
+                Text("Requires iPhone 15 Pro Max or later")
+                    .font(.footnote.bold())
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.headline)
+                            .foregroundStyle(Color("LightGreen"))
+                        Text("Apple Intelligence")
+                            .font(.subheadline.bold())
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        Task {
+                            guard SystemLanguageModel.default.isAvailable else { return }
+                            await summaryManager.generateSummary(for: topic.content)
+                        }
+                    } label: {
+                        Text("Summarise")
+                            .font(.footnote.bold())
+                    }
+                    .buttonStyle(.glass)
+                    .disabled(summaryManager.isGenerating)
+                }
+            }
+            
+            if summaryManager.isGenerating {
+                HStack(spacing: 12) {
+                    ProgressView().tint(.purple)
+                    Text("Analysing")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .center)
+            } else if !summaryManager.summary.isEmpty {
+                Text(summaryManager.summary)
+                    .font(.footnote)
+                    .lineSpacing(5)
+                    .padding(14)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+        .padding(16)
+        .glassEffect(.regular.tint(colorScheme == .dark ? .purple.opacity(0.5) : Color("LightPurple")).interactive(), in: .rect(cornerRadius: 20))
+    }
+    
+    // MARK: - Images section
+    @ViewBuilder
+    var imagesSection: some View {
+        if let imageKeys = topic.imageKey, !imageKeys.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Images")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(imageKeys, id: \.self) { imageName in
+                        NavigationLink {
+                            ImageDetailView(imageName: imageName)
+                        } label: {
+                            Image(imageName)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding()
+            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        }
+    }
+    
+    // MARK: - Sources section
+    @ViewBuilder
+    var sourcesSection: some View {
+        if !topic.sources.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Sources")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                
+                ForEach(topic.sources) { source in
+                    if let url = URL(string: source.url) {
+                        Button {
+                            selectedURL = url
+                        } label: {
+                            HStack(alignment: .center, spacing: 12) {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.1))
+                                    .frame(width: 28, height: 28)
+                                    .overlay(
+                                        Text("\(source.id)")
+                                            .font(.caption2.bold())
+                                            .foregroundColor(.blue)
+                                    )
+                                
+                                Text(source.label)
+                                    .font(.footnote)
+                                    .foregroundColor(.primary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                
+                                Spacer()
+                                
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                        }
+                        .glassEffect(.clear, in: .rect(cornerRadius: 10))
+                    }
+                }
+            }
+            .padding(20)
+            .glassEffect(.regular, in: .rect(cornerRadius: 20))
         }
     }
 }
