@@ -91,11 +91,14 @@ struct CategoryView: View {
 struct TopicView: View {
     let categoryName: String
     let topics: [Topic]
+    @State private var searchText: String = ""
     
-    private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
-    ]
+    var filteredTopics: [Topic] {
+        if searchText.isEmpty {
+            return topics
+        }
+        return topics.filter { $0.heading.localizedCaseInsensitiveContains(searchText) }
+    }
     
     var body: some View {
         Group {
@@ -105,14 +108,18 @@ struct TopicView: View {
                                        description: Text("Content for this category is currently under compilation."))
             } else {
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(topics) { topic in
+                    VStack(spacing: 12) {
+                        ForEach(filteredTopics) { topic in
                             NavigationLink {
                                 TopicDetailReadingView(topic: topic)
                             } label: {
                                 TopicDetailView(topic: topic)
                             }
                             .buttonStyle(.plain)
+                        }
+                        
+                        if filteredTopics.isEmpty {
+                            ContentUnavailableView.search(text: searchText)
                         }
                     }
                     .padding()
@@ -121,6 +128,7 @@ struct TopicView: View {
         }
         .navigationTitle(categoryName)
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search topics")
     }
 }
 
@@ -128,7 +136,7 @@ struct TopicDetailView: View {
     var topic: Topic
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 16) {
             Image(systemName: "doc.plaintext.fill")
                 .font(.title2)
                 .foregroundColor(.accentColor)
@@ -138,13 +146,15 @@ struct TopicDetailView: View {
                 .bold()
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
-                .lineLimit(3)
             
-            Spacer(minLength: 0)
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.footnote)
+                .foregroundColor(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .frame(height: 140)
         .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
@@ -167,30 +177,29 @@ struct TopicDetailReadingView: View {
     
     var body: some View {
         ScrollView {
-            GlassEffectContainer(spacing: 24) {
-                VStack(alignment: .leading, spacing: 24) {
-                    
-                    // MARK: - AI Summary Section
-                    aiSummary
-                    
-                    // MARK: - Topic Content Panel
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text(topic.content)
-                            .font(.body)
-                            .lineSpacing(8)
-                            .foregroundColor(.primary)
-                    }
-                    .padding()
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
-                    
-                    // MARK: - Media Grid Section
-                    imagesSection
-                    
-                    // MARK: - Sources Reference Section
-                    sourcesSection
+            VStack(alignment: .leading, spacing: 24) {
+                
+                // MARK: - AI Summary Section
+                aiSummary
+                
+                // MARK: - Topic Content Section
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(topic.content)
+                        .font(.body)
+                        .lineSpacing(8)
+                        .foregroundColor(.primary)
                 }
                 .padding()
+                .background(Color(.systemGray5))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                
+                // MARK: - Media Grid Section
+                imagesSection
+                
+                // MARK: - Sources Reference Section
+                sourcesSection
             }
+            .padding()
         }
         .navigationTitle(topic.heading)
         .navigationBarTitleDisplayMode(.inline)
@@ -205,7 +214,7 @@ struct TopicDetailReadingView: View {
     var aiSummary: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading) {
-                Text("Requires iPhone 15 Pro Max or later")
+                Text("Requires iPhone 15 Pro or later - use with caution")
                     .font(.footnote.bold())
                 HStack {
                     HStack(spacing: 8) {
@@ -250,7 +259,8 @@ struct TopicDetailReadingView: View {
             }
         }
         .padding(16)
-        .glassEffect(.regular.tint(colorScheme == .dark ? .purple.opacity(0.5) : Color("LightPurple")).interactive(), in: .rect(cornerRadius: 20))
+        .background(Color(.systemGray5))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
     
     // MARK: - Images section
@@ -285,7 +295,8 @@ struct TopicDetailReadingView: View {
                 }
             }
             .padding()
-            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            .background(Color(.systemGray5))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
     
@@ -328,12 +339,14 @@ struct TopicDetailReadingView: View {
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
                         }
-                        .glassEffect(.clear, in: .rect(cornerRadius: 10))
                     }
+                    
+                    Divider()
                 }
             }
             .padding(20)
-            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            .background(Color(.systemGray5))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 }
@@ -342,7 +355,7 @@ struct ImageDetailView: View {
     let imageURLs: [String]
     @State var selectedImageURL: String
     @Environment(\.dismiss) var dismiss
-    
+
     var body: some View {
         VStack {
             TabView(selection: $selectedImageURL) {
