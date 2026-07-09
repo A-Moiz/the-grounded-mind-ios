@@ -12,6 +12,6 @@ struct Topic: Identifiable, Codable {
     @DocumentID var id: String?
     let heading: String
     let content: String
-    let sources: [TopicSource]
+    let sources: [TopicSource]?
     let imageURLs: [String]?
 }

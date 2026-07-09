@@ -303,13 +303,13 @@ struct TopicDetailReadingView: View {
     // MARK: - Sources section
     @ViewBuilder
     var sourcesSection: some View {
-        if !topic.sources.isEmpty {
+        if let sources = topic.sources, !sources.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Sources")
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
-                ForEach(topic.sources) { source in
+                ForEach(sources) { source in
                     if let url = URL(string: source.url) {
                         Button {
                             selectedURL = url
