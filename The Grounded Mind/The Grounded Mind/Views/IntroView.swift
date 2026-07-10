@@ -10,6 +10,7 @@ import SwiftUI
 struct IntroView: View {
     @State private var navigateToAllCategories: Bool = false
     @State private var showPrerequisite: Bool = false
+    @State private var showDocumentsView: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -76,9 +77,15 @@ struct IntroView: View {
                     )
                     .padding(.horizontal)
 
-                    // MARK: - Get Started Button
+                    // MARK: - CTA Button
                     Button("Get Started") {
                         navigateToAllCategories = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    
+                    Button("View Documents") {
+                        showDocumentsView = true
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -88,6 +95,9 @@ struct IntroView: View {
             .navigationTitle("The Grounded Mind")
             .navigationDestination(isPresented: $navigateToAllCategories) {
                 AllCategoriesView()
+            }
+            .sheet(isPresented: $showDocumentsView) {
+                DocumentsView()
             }
         }
     }
