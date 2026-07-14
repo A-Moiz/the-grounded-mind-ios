@@ -30,7 +30,7 @@ struct IntroView: View {
                             Label("A Question Worth Asking", systemImage: "globe.americas.fill")
                                 .font(.headline)
 
-                            Text("There are 2.3 billion Christians, 2 billion Muslims, 1.1 billion Hindus, 500 million Buddhists, and 15 million Jews in the world - and a total of 4,300 religions.")
+                            Text("There are 2.3 billion Christians, 2 billion Muslims, 1.1 billion Hindus, 500 million Buddhists, and 15 million Jews in the world - and a total of 4,300 religions. Is any religion the truth? If so, which one?")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .lineSpacing(4)
@@ -78,17 +78,19 @@ struct IntroView: View {
                     .padding(.horizontal)
 
                     // MARK: - CTA Button
-                    Button("Get Started") {
-                        navigateToAllCategories = true
+                    HStack {
+                        Button("Get Started") {
+                            navigateToAllCategories = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        
+                        Button("View Documents") {
+                            showDocumentsView = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    
-                    Button("View Documents") {
-                        showDocumentsView = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                 }
                 .padding()
             }

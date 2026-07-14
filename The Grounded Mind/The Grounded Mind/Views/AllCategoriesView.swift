@@ -141,11 +141,20 @@ struct TopicDetailView: View {
                 .font(.title2)
                 .foregroundColor(.accentColor)
             
-            Text(topic.heading)
-                .font(.subheadline)
-                .bold()
-                .foregroundColor(.primary)
-                .multilineTextAlignment(.leading)
+            VStack {
+                Text(topic.heading)
+                    .font(.subheadline)
+                    .bold()
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                
+                if let topicDescription = topic.topicDescription, !topicDescription.isEmpty {
+                    Text(topicDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+            }
             
             Spacer()
             
