@@ -11,83 +11,107 @@ import Kingfisher
 
 struct AllCategoriesView: View {
     @Environment(AppDataManager.self) private var dataManager
-    
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
     ]
     
     var body: some View {
-        if dataManager.isPreloading {
-            VStack(spacing: 20) {
-                Text("The Grounded Mind")
-                    .font(.largeTitle)
-                    .bold()
-                
-                ProgressView("Syncing reference library...")
-            }
-        } else if let error = dataManager.errorMessage {
-            ContentUnavailableView("Connection Error",
-                                   systemImage: "wifi.exclamationmark",
-                                   description: Text(error))
-        } else {
-            NavigationStack {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(dataManager.categories) { category in
-                            if let categoryId = category.id {
-                                NavigationLink {
-                                    TopicView(
-                                        categoryName: category.name,
-                                        topics: dataManager.topicsCache[categoryId] ?? []
-                                    )
-                                } label: {
-                                    CategoryView(category: category)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .padding()
-                }
+        Group {
+            if dataManager.isPreloading {
+                preloadingSection
+            } else if let error = dataManager.errorMessage {
+                ContentUnavailableView(
+                    "Connection Error",
+                    systemImage: "wifi.exclamationmark",
+                    description: Text(error)
+                )
+            } else {
+                categoriesGridView
             }
         }
+        .animation(.easeInOut(duration: 0.5), value: dataManager.isPreloading)
+    }
+    
+    // MARK: - View Builders
+    @ViewBuilder
+    private var preloadingSection: some View {
+        VStack(spacing: 24) {
+            Text("The Grounded Mind")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+            
+            ProgressView("Loading content...")
+                .controlSize(.regular)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemBackground))
+    }
+    
+    @ViewBuilder
+    private var categoriesGridView: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(dataManager.categories) { category in
+                    if let categoryId = category.id {
+                        NavigationLink {
+                            TopicView(
+                                categoryName: category.name,
+                                topics: dataManager.topicsCache[categoryId] ?? []
+                            )
+                        } label: {
+                            CategoryView(category: category)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(uiColor: .systemBackground))
+        .navigationTitle("Library")
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 
+// MARK: - Category View
 struct CategoryView: View {
     var category: Category
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(category.name.uppercased())
-                .font(.headline)
-                .bold()
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .tracking(1)
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
             
             Divider()
+                .background(Color.primary.opacity(0.1))
             
             Text(category.description)
-                .font(.caption)
+                .font(.footnote)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.leading)
-                .lineLimit(5)
+                .lineLimit(4)
+                .lineSpacing(3)
             
             Spacer(minLength: 0)
         }
-        .padding()
+        .padding(16)
         .frame(maxWidth: .infinity)
         .frame(height: 180)
         .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
         )
     }
 }
 
+// MARK: - Topic View
 struct TopicView: View {
     let categoryName: String
     let topics: [Topic]
@@ -132,6 +156,7 @@ struct TopicView: View {
     }
 }
 
+// MARK: - Topic detail View
 struct TopicDetailView: View {
     var topic: Topic
     
@@ -141,7 +166,7 @@ struct TopicDetailView: View {
                 .font(.title2)
                 .foregroundColor(.accentColor)
             
-            VStack {
+            VStack(alignment: .leading) {
                 Text(topic.heading)
                     .font(.subheadline)
                     .bold()
@@ -173,12 +198,13 @@ struct TopicDetailView: View {
     }
 }
 
+// MARK: - Topic reading view
 struct TopicDetailReadingView: View {
     let topic: Topic
     @State private var summaryManager = TopicSummaryManager()
     @State private var selectedURL: URL? = nil
     @Environment(\.colorScheme) var colorScheme
-    
+    @State private var activeSheet: ActiveSheet? = nil
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
@@ -187,11 +213,6 @@ struct TopicDetailReadingView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                
-                // MARK: - AI Summary Section
-                aiSummary
-                
-                // MARK: - Topic Content Section
                 VStack(alignment: .leading, spacing: 20) {
                     Text(topic.content)
                         .font(.body)
@@ -199,32 +220,98 @@ struct TopicDetailReadingView: View {
                         .foregroundColor(.primary)
                 }
                 .padding()
-                .background(Color(.systemGray5))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                
-                // MARK: - Media Grid Section
-                imagesSection
-                
-                // MARK: - Sources Reference Section
-                sourcesSection
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                )
             }
             .padding()
         }
+        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(topic.heading)
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(item: $selectedURL) { url in
             SafariView(url: url)
                 .ignoresSafeArea()
         }
+        .sheet(item: $activeSheet) { sheetType in
+            NavigationStack {
+                Group {
+                    switch sheetType {
+                    case .aiSummary:
+                        ScrollView {
+                            aiSummary.padding()
+                        }
+                        .navigationTitle("AI Summary")
+                        
+                    case .images:
+                        ScrollView {
+                            imagesSection.padding()
+                        }
+                        .navigationTitle("Images")
+                        
+                    case .sources:
+                        ScrollView {
+                            sourcesSection.padding()
+                        }
+                        .navigationTitle("References")
+                    }
+                }
+                .navigationBarTitleDisplayMode(.inline)
+                .background(Color(uiColor: .systemGroupedBackground))
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") {
+                            activeSheet = nil
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    // AI Summary Button
+                    Button {
+                        activeSheet = .aiSummary
+                    } label: {
+                        Label("AI Summary", systemImage: "sparkles")
+                    }
+                    
+                    // Image Section Button
+                    Button {
+                        activeSheet = .images
+                    } label: {
+                        Label("Images", systemImage: "photo")
+                    }
+                    
+                    // Sources Section Button
+                    Button {
+                        activeSheet = .sources
+                    } label: {
+                        Label("References", systemImage: "text.page.badge.magnifyingglass")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
     }
     
-    // MARK: - AI Summary section
+    // MARK: - AI Summary View
     @ViewBuilder
-    var aiSummary: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading) {
-                Text("Requires iPhone 15 Pro or later - use with caution")
-                    .font(.footnote.bold())
+    private var aiSummary: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Requires iPhone 15 Pro or later")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                
                 HStack {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
@@ -245,7 +332,8 @@ struct TopicDetailReadingView: View {
                         Text("Summarise")
                             .font(.footnote.bold())
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
                     .disabled(summaryManager.isGenerating)
                 }
             }
@@ -253,34 +341,43 @@ struct TopicDetailReadingView: View {
             if summaryManager.isGenerating {
                 HStack(spacing: 12) {
                     ProgressView().tint(.purple)
-                    Text("Analysing")
+                    Text("Analysing...")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 16)
                 .frame(maxWidth: .infinity, alignment: .center)
             } else if !summaryManager.summary.isEmpty {
                 Text(summaryManager.summary)
-                    .font(.footnote)
-                    .lineSpacing(5)
-                    .padding(14)
+                    .font(.subheadline)
+                    .lineSpacing(6)
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                ContentUnavailableView(
+                    "No Summary Yet",
+                    systemImage: "sparkles",
+                    description: Text("Tap 'Summarise' above to synthesize this topic utilising on-device LLMs.")
+                )
+                .padding(.top, 20)
             }
         }
-        .padding(16)
-        .background(Color(.systemGray5))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(20)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
     
-    // MARK: - Images section
+    // MARK: - Images Section View
     @ViewBuilder
-    var imagesSection: some View {
+    private var imagesSection: some View {
         if let imageUrls = topic.imageURLs, !imageUrls.isEmpty {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Images")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(imageUrls, id: \.self) { imageURL in
                         NavigationLink {
@@ -290,51 +387,53 @@ struct TopicDetailReadingView: View {
                                 .placeholder {
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .fill(Color.secondary.opacity(0.1))
-                                        .frame(width: 120, height: 120)
+                                        .frame(height: 120)
                                         .overlay(ProgressView())
                                 }
                                 .resizable()
                                 .fade(duration: 0.25)
                                 .aspectRatio(contentMode: .fill)
-                                .frame(width: 120, height: 120)
+                                .frame(height: 120)
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
-            .padding()
-            .background(Color(.systemGray5))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+        } else {
+            ContentUnavailableView(
+                "No Media Available",
+                systemImage: "photo.on.rectangle",
+                description: Text("There are no associated images for this topic.")
+            )
         }
     }
     
-    // MARK: - Sources section
+    // MARK: - Sources Section View
     @ViewBuilder
-    var sourcesSection: some View {
+    private var sourcesSection: some View {
         if let sources = topic.sources, !sources.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Sources")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(sources) { source in
                     if let url = URL(string: source.url) {
                         Button {
-                            selectedURL = url
+                            activeSheet = nil
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                selectedURL = url
+                            }
                         } label: {
-                            HStack(alignment: .center, spacing: 12) {
+                            HStack(alignment: .center, spacing: 14) {
                                 Circle()
                                     .fill(Color.blue.opacity(0.1))
-                                    .frame(width: 28, height: 28)
+                                    .frame(width: 32, height: 32)
                                     .overlay(
                                         Text("\(source.id)")
-                                            .font(.caption2.bold())
+                                            .font(.caption.bold())
                                             .foregroundColor(.blue)
                                     )
                                 
                                 Text(source.label)
-                                    .font(.footnote)
+                                    .font(.subheadline)
                                     .foregroundColor(.primary)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)
@@ -342,24 +441,39 @@ struct TopicDetailReadingView: View {
                                 Spacer()
                                 
                                 Image(systemName: "arrow.up.right.square")
-                                    .font(.caption)
+                                    .font(.footnote)
                                     .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if source.id != sources.last?.id {
+                            Divider()
+                                .padding(.leading, 46)
                         }
                     }
-                    
-                    Divider()
                 }
             }
-            .padding(20)
-            .background(Color(.systemGray5))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(16)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+        } else {
+            ContentUnavailableView(
+                "No References",
+                systemImage: "text.badge.xmark",
+                description: Text("There are no external sources listed for this topic.")
+            )
         }
     }
 }
 
+// MARK: - Image detail View
 struct ImageDetailView: View {
     let imageURLs: [String]
     @State var selectedImageURL: String
@@ -390,6 +504,7 @@ struct ImageDetailView: View {
     }
 }
 
+// MARK: - URL Extension
 extension URL: @retroactive Identifiable {
     public var id: URL { self }
 }
